@@ -22,7 +22,6 @@ import sys
 
 # 크롤링 날짜 확인 -----------------------------------------------------------------------------------------------------------------------------------------------------
 import datetime
-
 df_now = datetime.datetime.now()
 
 
@@ -32,8 +31,14 @@ def resource_path(relative_path):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(relative_path)))
     return os.path.join(base_path, relative_path)
 
-chrom_exe = resource_path('chromedriver.exe')
-
+if getattr(sys, 'frozen', False):
+    #test.exe로 실행한 경우,test.exe를 보관한 디렉토리의 full path를 취득
+    program_directory = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    #python test.py로 실행한 경우,test.py를 보관한 디렉토리의 full path를 취득
+    program_directory = os.path.dirname(os.path.abspath(__file__))
+#현재 작업 디렉토리를 변경
+os.chdir(program_directory)
 
 # 크롤링 Options  -----------------------------------------------------------------------------------------------------------------------------------------------------
 # 갑자기 안될 때는 크롬 버전이 달라서 그런 것이므로, 그에 맞는 driver 다운로드하면 된다.
@@ -47,7 +52,7 @@ options.add_argument('headless')
 options.add_argument('window-size=1920x1080')
 options.add_argument("disable-gpu")
 options.add_experimental_option("prefs", {
-    "download.default_directory": os.path.dirname(os.path.realpath(__file__)),
+    "download.default_directory": program_directory,
     "download.prompt_for_download": False,
     "download.directory_upgrade": True,
     "safebrowsing.enabled": True
@@ -56,8 +61,9 @@ options.add_experimental_option("prefs", {
 
 # file rename 함수 ------------------------------------------------------------------------------------------------------------------------------------------
 
-def file_rename(title):
-    folder_path = os.path.dirname(os.path.realpath(__file__)) + '/'
+def file_rename(title, program_directory):
+    folder_path = program_directory + '/'
+    #folder_path = os.path.dirname(os.path.realpath(__file__)) + '/'
     # each_file_path_and_gen_time: 각 file의 경로와, 생성 시간을 저장함
     each_file_path_and_gen_time = []
     for each_file_name in os.listdir(folder_path):
@@ -69,7 +75,6 @@ def file_rename(title):
         )
     # 가장 생성시각이 큰(가장 최근인) 파일을 리턴 
     most_recent_file = max(each_file_path_and_gen_time, key=lambda x: x[1])[0]
-    print(most_recent_file)
     file_oldname = os.path.join(folder_path, f"{most_recent_file}")
     file_newname_newfile = os.path.join(folder_path, f"{title}.xlsx")
     os.rename(file_oldname, file_newname_newfile)
@@ -77,8 +82,11 @@ def file_rename(title):
 
 
 # 센터 현황 file 크롤링 ------------------------------------------------------------------------------------------------------------------------------------------
-def center_crawling(df_now):
+def center_crawling(program_directory):
+    import datetime
+    df_now = datetime.datetime.now()
     # global : chrome_exe, options
+    chrom_exe = resource_path('chromedriver.exe')
     url = 'https://www.longtermcare.or.kr/npbs/r/a/201/selectLtcoSrch.web?menuId=npe0000000650'
     driver = webdriver.Chrome(executable_path=chrom_exe, chrome_options=options)
     driver.get(url=url)
@@ -107,16 +115,18 @@ def center_crawling(df_now):
     # 두 번째 진입 / 파일 다운로드
     sleep(10)
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/form/div/table/tbody/tr[1]/td/button[2]'))).click()
-    sleep(3)
-    file_rename(f"{df_now.month}월{df_now.day}일_센터 현황")
-    print("센터현황 파일 크롤링이 종료되었습니다.")
-    driver.quit()
+    sleep(10)
+    file_rename(f"{df_now.month}월{df_now.day}일_센터 현황", program_directory)
+    driver.close()
 
 
 
 # 상주 인구 현황 file 크롤링 ------------------------------------------------------------------------------------------------------------------------------------------
-def sangju_human(df_now):
+def sangju_human(program_directory):
+    import datetime
+    df_now = datetime.datetime.now()
     # global : chrome_exe, options
+    chrom_exe = resource_path('chromedriver.exe')
     url = 'https://www.sangju.go.kr/board/list.tc?mn=2404&viewType=sub&mngNo=389&pageIndex=1&searchKeyword=&searchCondition=1&boardName=RKRWHD&boardNo=2000037233&groupNo=0&groupDepth=0&groupOrder=0&boardCategory=&searchAll=&inputPassYn=N&pageSeq=2564&preview=&previewTempl='
     driver = webdriver.Chrome(executable_path=chrom_exe, chrome_options=options)
     driver.get(url=url)
@@ -132,17 +142,13 @@ def sangju_human(df_now):
     title = table_df['제목'][0]
     month = list(title.split(' '))[1]
 
-    if df_now.month-1 == 5:
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="form1"]/div[2]/div/table/tbody/tr[1]/td[6]/a'))).click()
-        sleep(5)
-        file_rename(f"{df_now.month-1}월_상주인구현황")
+    if df_now.month-1 == int(month[0:-1]):
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="form1"]/div[2]/div/table/tbody/tr[1]/td[2]/a'))).click()
+        sleep(3)
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/main/div/div[3]/form/div/table/tbody/tr[2]/td/div[3]/ul/li/a'))).click()
+        sleep(10)
+        file_rename(f"{df_now.month-1}월_상주인구현황", program_directory)
     else:
         print("최근 달의 근황이 존재하지 않습니다.")
     sleep(5)
-    print("인구현황 파일 크롤링이 종료되었습니다.")
-    driver.quit()
-
-
-
-center_crawling(df_now)
-sangju_human(df_now)
+    driver.close()
