@@ -74,11 +74,3 @@ try:
 except:
     print('인구현황 전처리가 되지 않았습니다.')
 
-
-# gmail로 보내기 -----------------------------------------------------------------------------------------------------------------------------------------------------
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
-import smtplib, ssl
-

@@ -40,6 +40,7 @@ else:
 #현재 작업 디렉토리를 변경
 os.chdir(program_directory)
 
+
 # 크롤링 Options  -----------------------------------------------------------------------------------------------------------------------------------------------------
 # 갑자기 안될 때는 크롬 버전이 달라서 그런 것이므로, 그에 맞는 driver 다운로드하면 된다.
 options = webdriver.ChromeOptions()
@@ -81,16 +82,15 @@ def file_rename(title, program_directory):
 
 
 
-# 센터 현황 file 크롤링 ------------------------------------------------------------------------------------------------------------------------------------------
+### 센터 현황 file 크롤링 ------------------------------------------------------------------------------------------------------------------------------------------
 def center_crawling(program_directory):
     import datetime
     df_now = datetime.datetime.now()
-    # global : chrome_exe, options
     chrom_exe = resource_path('chromedriver.exe')
     url = 'https://www.longtermcare.or.kr/npbs/r/a/201/selectLtcoSrch.web?menuId=npe0000000650'
     driver = webdriver.Chrome(executable_path=chrom_exe, chrome_options=options)
     driver.get(url=url)
-    # 첫 진입
+    # 첫 진입 ---------------------------------------------------------------------------------------------------------------
     # 지역설정
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="si_do_cd-button"]'))).click()
     sleep(1)
@@ -99,7 +99,7 @@ def center_crawling(program_directory):
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="si_gun_gu_cd-button"]'))).click()
     sleep(1)
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/ul/li[10]'))).click()
-    # 급여
+    # 급여 ---------------------------------------------------------------------------------------------------------------
     sleep(1)
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="searchAdminKindCd-button"]'))).click()
     sleep(2)
@@ -109,19 +109,20 @@ def center_crawling(program_directory):
     sleep(2)
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[6]/ul/li[4]'))).click()
     sleep(2)
-    # 검색 
+    # 검색 ---------------------------------------------------------------------------------------------------------------
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="btn_search_pop"]'))).click()
     driver.switch_to.window(driver.window_handles[-1])
-    # 두 번째 진입 / 파일 다운로드
+    # 두 번째 진입 / 파일 다운로드 -----------------------------------------------------------------------------------------
     sleep(10)
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/form/div/table/tbody/tr[1]/td/button[2]'))).click()
     sleep(10)
+    # 파일 rename -----------------------------------------------------------------------------------------
     file_rename(f"{df_now.month}월{df_now.day}일_센터 현황", program_directory)
     driver.close()
 
 
 
-# 상주 인구 현황 file 크롤링 ------------------------------------------------------------------------------------------------------------------------------------------
+### 상주 인구 현황 file 크롤링 ------------------------------------------------------------------------------------------------------------------------------------------
 def sangju_human(program_directory):
     import datetime
     df_now = datetime.datetime.now()
@@ -131,7 +132,7 @@ def sangju_human(program_directory):
     driver = webdriver.Chrome(executable_path=chrom_exe, chrome_options=options)
     driver.get(url=url)
 
-
+    # html 파싱 --------------------------------------------------------------------------------
     html = driver.page_source
     # pip install lxml
     soup = BeautifulSoup(html, 'html.parser')
@@ -141,7 +142,7 @@ def sangju_human(program_directory):
     table_df = table_df_list[0]
     title = table_df['제목'][0]
     month = list(title.split(' '))[1]
-
+    # 이전 달의 인구현황이 있는 경우 파싱 시작 -----------------------------------------------------
     if df_now.month-1 == int(month[0:-1]):
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="form1"]/div[2]/div/table/tbody/tr[1]/td[2]/a'))).click()
         sleep(3)

@@ -89,7 +89,7 @@ def centerfile_processing(program_directory):
     df_now = datetime.datetime.now()
     # 폴더 생성
     os.mkdir(program_directory + '/' + f"{df_now.month}월{df_now.day}일")
-    # 센터 파일 불러오기
+    # 센터 파일 불러오기 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
     center_file_path = program_directory + '/' + f"{df_now.month}월{df_now.day}일_센터 현황.xlsx"
     center_wb = openpyxl.load_workbook(center_file_path, data_only=True)
     # default 시트 열기
@@ -100,21 +100,22 @@ def centerfile_processing(program_directory):
     # dataframe으로 굽기
     df = pd.DataFrame(ws.values)
     df.columns = ['장기요양기관', '급여종류', '평가결과', '정원', '현원', '잔여', '대기', '방문목욕차량', '주소', '전화번호']
-    # 주소/방문목욕차량 전처리
+    # 주소/방문목욕차량 전처리 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
     df = df.drop('방문목욕차량', axis=1)
     df['주소'] = df.주소.apply(lambda x: ' '.join(x.split(' ')[0:4]))
     # 주야간보호센터와 방문요양센터 나누기
     week_center = df[df['급여종류']=='주야간보호'].copy()
-    week_center = lat_long(week_center)
-    df2excel(week_center, f"{df_now.month}월_{df_now.day}일_주야간보호 현황", program_directory)
     visit_center = df[df['급여종류']=='방문요양'].copy()
+    week_center = lat_long(week_center)
     visit_center = lat_long(visit_center)
+    df2excel(week_center, f"{df_now.month}월_{df_now.day}일_주야간보호 현황", program_directory)
     df2excel(visit_center, f"{df_now.month}월_{df_now.day}일_방문요양 현황", program_directory)
-    # 지도에 표시해주기 -> 주야간은 파란색/ 방문요양센터는 빨간색, 주야간의 [현원/정원]은 동그라미에 바로 표시된다.
+    # 지도에 표시해주기 -> 주야간은 파란색/ 방문요양센터는 빨간색, 주야간의 [현원/정원]은 동그라미에 바로 표시된다. ----------------------------------------------------------------------------------
     center = [36.382402, 128.2715050]
     m = folium.Map(location=center, zoom_start=10)
-
     df_c = week_center[['장기요양기관', '정원', '현원', '위도', '경도']].copy()
+    df_h = visit_center[['장기요양기관','위도', '경도']].copy()
+
     # 주간보호센터 데이터를 그려냅니다.
     for name, r_human, j_human, lat, lon in zip(df_c['장기요양기관'], df_c['정원'], df_c['현원'], df_c['위도'], df_c['경도']):
         folium.Marker(
@@ -123,7 +124,6 @@ def centerfile_processing(program_directory):
             icon=folium.Icon(color='red',icon='star')
         ).add_to(m)
 
-    df_h = visit_center[['장기요양기관','위도', '경도']].copy()
     # 방문요양센터 데이터를 그려냅니다.
     for name, lat, lon in zip(df_h['장기요양기관'], df_h['위도'], df_h['경도']):
         folium.Circle(
@@ -131,11 +131,11 @@ def centerfile_processing(program_directory):
             color = 'black'
         ).add_to(m)
 
-    # geojson 사용할 수 있다면 사용하기
+    # 지도 저장
     m.save(program_directory + '/' + f"{df_now.month}월{df_now.day}일" + '/' + '센터 지도.html')
 
 
-    # 그래프 그리기
+    # 그래프 그리기 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
     import seaborn as sns
     import matplotlib.pyplot as plt
     sns.set(font="Malgun Gothic", 
@@ -167,7 +167,7 @@ def centerfile_processing(program_directory):
     plt.savefig(program_directory + '/' + f"{df_now.month}월{df_now.day}일" + '/' + '장기요양기관 현원&정원.png')
 
 
-    # 마무리: 파일 삭제
+    # 마무리: 파일 삭제 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
     if os.path.isfile(program_directory + '/' + f"{df_now.month}월{df_now.day}일_센터 현황.xlsx"):
         os.remove(program_directory + '/' + f"{df_now.month}월{df_now.day}일_센터 현황.xlsx")
         return 'okay'
@@ -180,7 +180,7 @@ def humanfile_processing(program_directory):
     df_now = datetime.datetime.now()    
     human_file_path = program_directory + '/' + f"{df_now.month-1}월_상주인구현황.xlsx"
     human_wb = openpyxl.load_workbook(human_file_path, data_only=True)
-    # default 시트 열기
+    # default 시트 열기 
     ws = human_wb.active
 
     # 칼럼 리스트 뽑기
@@ -200,7 +200,7 @@ def humanfile_processing(program_directory):
     row_list = list(filter(None, row_list))[4:]
     row_small_list = ['계', '남', '여'] 
 
-    # 본격적인 df 구성
+    # 본격적인 df 구성 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
     ws.delete_rows(1,7)
     ws.delete_cols(1,3)
     df = pd.DataFrame(ws.values)
@@ -217,7 +217,7 @@ def humanfile_processing(program_directory):
         else:
             df[title] = df[title].apply(lambda x: x.replace(',', ''))
 
-    # index 재구성
+    # index 재구성 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # [70:100]
     index_list = []
     for r in row_list:
@@ -243,7 +243,7 @@ def humanfile_processing(program_directory):
     df = df.transpose()
     df.to_excel(program_directory + '/' + f"{df_now.month}월{df_now.day}일" + '/' + f"{df_now.month-1}월상주인구현황.xlsx")
 
-    # 마무리: 파일 삭제
+    # 마무리: 파일 삭제 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
     if os.path.isfile(program_directory + '/' + f"{df_now.month-1}월_상주인구현황.xlsx"):
         os.remove(program_directory + '/' + f"{df_now.month-1}월_상주인구현황.xlsx")
         return 'okay'
